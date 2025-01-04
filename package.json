@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "node-fetch": "^2.6.6",
+    "node-fetch": "^3.3.2",
     "raw-loader": "^4.0.2"
   }
 }
