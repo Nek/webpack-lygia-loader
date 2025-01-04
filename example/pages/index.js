@@ -19,6 +19,7 @@ export default function Home() {
     // Create a plane with our shader
     const geometry = new THREE.PlaneGeometry(2, 2);
     const material = new THREE.ShaderMaterial({
+      // Vertex shader is missing. Fix it. AI!
       fragmentShader,
       glslVersion: THREE.GLSL3,
     });
