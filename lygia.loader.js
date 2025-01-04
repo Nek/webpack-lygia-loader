@@ -1,11 +1,18 @@
-const fetch = require('node-fetch');
-const fs = require('fs/promises');
 const path = require('path');
 
 const CACHE_DIR = path.join(process.cwd(), '.lygia-cache');
 const PROJECT_ROOT = process.cwd();
 
+async function importDeps() {
+  const [{ default: fetch }, fs] = await Promise.all([
+    import('node-fetch'),
+    import('fs/promises')
+  ]);
+  return { fetch, fs };
+}
+
 async function ensureCacheDir() {
+  const { fs } = await importDeps();
   try {
     await fs.mkdir(CACHE_DIR, { recursive: true });
   } catch (err) {
@@ -14,6 +21,7 @@ async function ensureCacheDir() {
 }
 
 async function getCachedFile(url) {
+  const { fetch, fs } = await importDeps();
   const filename = path.join(CACHE_DIR, Buffer.from(url).toString('base64'));
   try {
     return await fs.readFile(filename, 'utf8');
@@ -30,6 +38,7 @@ async function getCachedFile(url) {
 }
 
 async function getLocalFile(filepath) {
+  const { fs } = await importDeps();
   try {
     return await fs.readFile(filepath, 'utf8');
   } catch (err) {
