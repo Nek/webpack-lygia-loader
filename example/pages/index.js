@@ -3,6 +3,7 @@ import * as THREE from 'three';
 
 // Import shaders
 import fragmentShader from '../shaders/fragment.glsl';
+import vertexShader from '../shaders/vertex.glsl';
 
 export default function Home() {
   const canvasRef = useRef();
@@ -19,7 +20,7 @@ export default function Home() {
     // Create a plane with our shader
     const geometry = new THREE.PlaneGeometry(2, 2);
     const material = new THREE.ShaderMaterial({
-      // Vertex shader is missing. Fix it. AI!
+      vertexShader,
       fragmentShader,
       glslVersion: THREE.GLSL3,
     });
