@@ -3,6 +3,7 @@ const fs = require('fs/promises');
 const path = require('path');
 
 const CACHE_DIR = path.join(process.cwd(), '.lygia-cache');
+const PROJECT_ROOT = process.cwd();
 
 async function ensureCacheDir() {
   try {
@@ -28,17 +29,33 @@ async function getCachedFile(url) {
   }
 }
 
-async function resolveLygia(source) {
+async function getLocalFile(filepath) {
+  try {
+    return await fs.readFile(filepath, 'utf8');
+  } catch (err) {
+    throw new Error(`Failed to read local file ${filepath}: ${err.message}`);
+  }
+}
+
+async function resolveLygia(source, resourcePath) {
   await ensureCacheDir();
   
   const lines = source.split(/\r?\n/);
   const resolvedLines = await Promise.all(
     lines.map(async (line) => {
       const line_trim = line.trim();
-      if (line_trim.startsWith('#include "lygia')) {
-        const include_url = 'https://lygia.xyz' + 
-          line_trim.substring(15).replace(/\"|\;|\s/g, '');
-        return await getCachedFile(include_url);
+      if (line_trim.startsWith('#include "')) {
+        const includePath = line_trim.substring(9).replace(/\"|\;|\s/g, '');
+        
+        if (includePath.startsWith('lygia')) {
+          const include_url = 'https://lygia.xyz' + 
+            includePath.substring(5);
+          return await getCachedFile(include_url);
+        } else {
+          // Resolve local path relative to the current shader file
+          const localPath = path.resolve(path.dirname(resourcePath), includePath);
+          return await getLocalFile(localPath);
+        }
       }
       return line;
     })
@@ -50,7 +67,7 @@ async function resolveLygia(source) {
 module.exports = async function(source) {
   const callback = this.async();
   try {
-    const result = await resolveLygia(source);
+    const result = await resolveLygia(source, this.resourcePath);
     callback(null, result);
   } catch (err) {
     callback(err);
