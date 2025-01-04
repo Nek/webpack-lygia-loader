@@ -8,7 +8,7 @@ const nextConfig = {
       exclude: /node_modules/,
       use: [
         'raw-loader',
-        path.resolve('./lygia.loader.js')
+        path.resolve('../lygia.loader.js')
       ]
     });
     return config;
