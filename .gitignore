@@ -3,3 +3,6 @@
 node_modules
 .DS_Store
 .next
+.lygia-cache
+**/.next
+**/.lygia-cache
