@@ -1,6 +1,6 @@
 {
-  "name": "lygia-loader",
-  "version": "1.0.0",
+  "name": "webpack-lygia-loader",
+  "version": "0.0.1",
   "description": "Webpack loader for Lygia shader library",
   "type": "module",
   "main": "./src/loader.mjs",
@@ -25,7 +25,12 @@
     "webpack": "^5.0.0"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^15.1.3",
     "raw-loader": "^4.0.2"
+  },
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
