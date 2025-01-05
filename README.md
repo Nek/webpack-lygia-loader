@@ -5,7 +5,7 @@ A webpack loader for the [Lygia](https://lygia.xyz/) shader library that resolve
 ## Installation
 
 ```bash
-npm install lygia-loader
+npm install webpack-lygia-loader
 ```
 
 ## Usage
@@ -21,7 +21,7 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           'raw-loader',
-          'lygia-loader'
+          'webpack-lygia-loader'
         ]
       }
     ]
