@@ -11,7 +11,7 @@ const nextConfig = {
       exclude: /node_modules/,
       use: [
         'raw-loader',
-        path.resolve(__dirname, '../lygia.loader.mjs')
+        path.resolve(__dirname, '../src/loader.mjs')
       ]
     });
     return config;
