@@ -1,4 +1,4 @@
-# lygia-loader
+# webpack-lygia-loader
 
 A webpack loader for the [Lygia](https://lygia.xyz/) shader library that resolves includes at build time.
 
