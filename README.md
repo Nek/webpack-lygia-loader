@@ -1,5 +1,6 @@
 # webpack-lygia-loader
 
+// Write why this project is useful AI!
 A webpack loader for the [Lygia](https://lygia.xyz/) shader library that resolves includes at build time.
 
 ## Installation
