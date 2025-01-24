@@ -1,6 +1,6 @@
 # webpack-lygia-loader
 
-// Write why this project is useful AI!
+A webpack loader that enables seamless integration of [Lygia](https://lygia.xyz/) shaders by resolving `#include` directives at build time. This eliminates runtime network requests for shader dependencies, improves performance, and allows static analysis of shader code bundles. The loader handles both local file includes and remote Lygia library imports with automatic caching.
 A webpack loader for the [Lygia](https://lygia.xyz/) shader library that resolves includes at build time.
 
 ## Installation
