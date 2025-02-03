@@ -1,6 +1,5 @@
 precision highp float;
 
-
 struct ValueWithCurve {
   vec2 value;
   vec4 bezier;

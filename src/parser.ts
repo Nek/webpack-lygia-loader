@@ -3,7 +3,7 @@ import { LoaderContext } from 'webpack';
 // import { type DeclarationNode, visit, type NodeVisitors, type Path, type DeclarationStatementNode, DeclaratorListNode, FullySpecifiedTypeNode, KeywordNode, IdentifierNode, QualifierDeclaratorNode, TypeSpecifierNode, DefaultCaseNode, FunctionNode, PreprocessorNode, StructDeclarationNode, StructNode, LiteralNode } from '@shaderfrog/glsl-parser/ast/index.js';
 import { writeFileSync } from 'fs';
 import path from 'path';
-// import { match, P } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 
 import Parser from 'tree-sitter';
 import GLSL from 'tree-sitter-glsl';
@@ -13,96 +13,103 @@ parser.setLanguage(GLSL as Parser.Language);
 
 
 const defaultValue: Record<string, Primitive> = {
-    'float': 0,
+    'float': 1,
     'vec2': [0, 0],
     'vec3': [0, 0, 0],
     'vec4': [0, 0, 0, 0],
-    'int': 0,
-    'bool': false,   
+    'int': 1,
+    'bool': true,
 }
-type Primitive = number | [number] | [number, number] | [number, number, number] | [number, number, number, number] | boolean | Float32Array;
+type Primitive = number | [number, number] | [number, number, number] | [number, number, number, number] | boolean | Float32Array;
 interface Struct {
-    [key: string]: Primitive | Struct;
+    [key: string]: Primitive | Struct | Array<Primitive | Struct>;
 }
 interface Uniform {
-    value: Primitive | Struct;
+    value: Primitive | Struct | Array<Primitive | Struct>;
 }
 type Uniforms = Record<string, Uniform>;
 
 const structs: Record<string, Struct> = {};
 const uniforms: Uniforms = {};
 
-// const visitors: NodeVisitors = {
-//     struct: {
-//         enter: (node: Path<StructNode>) => {
-//             console.log(node);
-//             node.skip();
-//         }
-//     },
-//     declaration_statement: {
-//         enter: (node: Path<DeclarationStatementNode>) => {
-//             const declaration = node.node.declaration as DeclaratorListNode;
-//             const specified_type = declaration.specified_type as FullySpecifiedTypeNode;
-//             const qualifier = (specified_type?.qualifiers?.[0] as KeywordNode)?.token;
-//             if (qualifier !== 'uniform') {
-//                 const type = specified_type?.specifier?.specifier.type;
-//                 node.skip();
-//                 if (type === 'struct') {
-//                     console.log(node.node);
-//                     const specifier = (specified_type?.specifier?.specifier as StructNode).declarations[0].declaration.specified_type.specifier.token;
-//                     const identifier = declaration.declarations?.[0].identifier.identifier;
-//                     console.log(qualifier, specifier, identifier);
-//                     // TODO: Handle structs
-//                 } else {
-//                     node.remove();
-//                 }
-//             } else {
-//                 const specifier = (specified_type.specifier.specifier as KeywordNode).token;
-//                 const identifier = declaration.declarations?.[0].identifier.identifier;
-//                 console.log(qualifier, specifier, identifier);
-//                 uniforms[identifier] = { value: defaultValue[specifier] };
-//                 node.skip();
-//             }
-//         }
-//     },
-//     preprocessor: {
-//         enter: (node: Path<PreprocessorNode>) => {
-//             node.remove();
-//             node.skip();
-//         }
-//     },
-//     function: {
-//         enter: (node: Path<FunctionNode>) => {
-//             node.remove();
-//             node.skip();
-//         }
-//     },
-//     default_case: {
-//         enter: (node: Path<DefaultCaseNode>) => {
-//             node.remove();
-//             node.skip();
-//         }
-//     }
-// }
+type Input = ({ type: string, text: string, children: Input[] });
+
+declare const input: Input;
 
 export default function (this: LoaderContext<{}>, source: string) {
-  const callback = this.async();
-  try {
-    const tree = parser.parse(source);
+    const callback = this.async();
+    try {
+        const tree = parser.parse(source);
 
-    const stack: Parser.SyntaxNode[] = [tree.rootNode];
-    
-    while (stack.length > 0) {
-      const node = stack.pop()!;
-      console.log(`Node type: ${node.type}`);
-      
-      // Push children in reverse order so they're popped in original order
-      for (let i = node.children.length - 1; i >= 0; i--) {
-        stack.push(node.children[i]);
-      }
+        const stack: Parser.SyntaxNode[] = [tree.rootNode];
+
+        while (stack.length > 0) {
+            const node = stack.pop()!;
+            match(node)
+                .with({ type: 'declaration', children: [{ type: 'uniform' }, ...P.array({ text: P.string })] }, (input) => {
+                    const identifierType = input.children[2].type;
+                    const qualifier = input.children[1].text;
+                    if (identifierType === 'array_declarator') {
+                        const identifier = input.children[2].children[0].text;
+                        const quantifier = Number(input.children[2].children[2].text);
+                        const value = defaultValue[qualifier] || structs[qualifier];
+                        // console.log("identifier", identifier, "qualifier", qualifier, "quantifier", quantifier, "value", value);
+                        uniforms[identifier] = {
+                            value: Array(quantifier).fill(value)
+                        }
+                    } else {
+                        const identifier = input.children[2].text;
+                        const value = defaultValue[qualifier] || structs[qualifier];
+                        // console.log("identifier", identifier, "qualifier", qualifier, "value", value);
+                        uniforms[identifier] = {
+                            value
+                        }
+                    }
+                })
+                .with({ type: 'struct_specifier' }, () => {
+                    const identifier = node.children[1].text;
+                    structs[identifier] = {} as Struct;
+                    for (const child of node.children[2].children) {
+                        if (child.type === 'field_declaration') {
+                            if (child.children[1].childCount) {
+                                let quantifier: number = 1;
+                                for (const subChild of child.children[1].children) {
+                                    if (subChild.type === 'array_declarator') {
+                                        quantifier = Number(subChild.children[2].text);
+                                        break;
+                                    }
+                                }
+                                const qualifier = child.children[0].text;
+                                const nestedIdentifier = child.children[2].text;
+                                const value = defaultValue[qualifier] || structs[qualifier];
+                                structs[identifier][nestedIdentifier] = Array(quantifier).fill(value);
+                            } else {
+                                const qualifier = child.children[0].text;
+                                const nestedIdentifier = child.children[1].text;
+                                const value = defaultValue[qualifier] || structs[qualifier];
+                                structs[identifier][nestedIdentifier] = value;
+                            }
+                        }
+                    }
+                })
+                .otherwise(() => {
+                });
+                
+            // Push children in reverse order so they're popped in original order
+            for (let i = node.children.length - 1; i >= 0; i--) {
+                stack.push(node.children[i]);
+            }
+        }
+        // console.log(structs);
+        // console.log(JSON.stringify(structs, null, 2));
+
+        const uniformsString = JSON.stringify(uniforms, null, 2);
+        // console.log(uniformsString);
+
+        let output = `export default \`${source}\`;\n\n`;
+        output += `export const uniforms = ${uniformsString};\n\n`;
+        callback(null, output);
+    } catch (err: any) {
+        callback(err);
     }
-    callback(null, `export default \`${source}\`;`);
-  } catch (err: any) {
-    callback(err);
-  }
 };

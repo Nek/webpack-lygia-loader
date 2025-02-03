@@ -6,3 +6,5 @@ node_modules
 .lygia-cache
 example/.next
 example/.lygia-cache
+.vscode
+.vscode/*

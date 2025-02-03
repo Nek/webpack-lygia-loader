@@ -1,89 +1,96 @@
-import { parser as parser$1, generate } from "@shaderfrog/glsl-parser";
+import { match, P } from "ts-pattern";
 
-import { visit } from "@shaderfrog/glsl-parser/ast/index.js";
+import Parser from "tree-sitter";
 
-import { writeFileSync } from "fs";
+import GLSL from "tree-sitter-glsl";
 
-import path from "path";
+const parser = new Parser;
+
+parser.setLanguage(GLSL);
 
 const defaultValue = {
-    float: 0,
+    float: 1,
     vec2: [ 0, 0 ],
     vec3: [ 0, 0, 0 ],
     vec4: [ 0, 0, 0, 0 ],
-    int: 0,
-    bool: false
+    int: 1,
+    bool: true
 };
+
+const structs = {};
 
 const uniforms = {};
 
-const visitors = {
-    struct: {
-        enter: node => {
-            console.log(node);
-            node.skip();
-        }
-    },
-    declaration_statement: {
-        enter: node => {
-            const declaration = node.node.declaration;
-            const specified_type = declaration.specified_type;
-            const qualifier = specified_type?.qualifiers?.[0]?.token;
-            if (qualifier !== "uniform") {
-                const type = specified_type?.specifier?.specifier.type;
-                node.skip();
-                if (type === "struct") {
-                    console.log(node.node);
-                    const specifier = (specified_type?.specifier?.specifier).declarations[0].declaration.specified_type.specifier.token;
-                    const identifier = declaration.declarations?.[0].identifier.identifier;
-                    console.log(qualifier, specifier, identifier);
-                } else {
-                    node.remove();
-                }
-            } else {
-                const specifier = specified_type.specifier.specifier.token;
-                const identifier = declaration.declarations?.[0].identifier.identifier;
-                console.log(qualifier, specifier, identifier);
-                uniforms[identifier] = {
-                    value: defaultValue[specifier]
-                };
-                node.skip();
-            }
-        }
-    },
-    preprocessor: {
-        enter: node => {
-            node.remove();
-            node.skip();
-        }
-    },
-    function: {
-        enter: node => {
-            node.remove();
-            node.skip();
-        }
-    },
-    default_case: {
-        enter: node => {
-            node.remove();
-            node.skip();
-        }
-    }
-};
-
-function parser(source) {
+function parser$1(source) {
     const callback = this.async();
     try {
-        const ast = parser$1.parse(source);
-        visit(ast, visitors);
-        console.log(uniforms);
-        writeFileSync(`${path.basename(this.resourcePath)}.json`, JSON.stringify(ast, null, 2));
-        const generated = generate(ast);
-        writeFileSync(`transformed.${path.basename(this.resourcePath)}`, generated);
-        callback(null, `export default \`${source}\`;`);
+        const tree = parser.parse(source);
+        const stack = [ tree.rootNode ];
+        while (stack.length > 0) {
+            const node = stack.pop();
+            match(node).with({
+                type: "declaration",
+                children: [ {
+                    type: "uniform"
+                }, ...P.array({
+                    text: P.string
+                }) ]
+            }, (input => {
+                const identifierType = input.children[2].type;
+                const qualifier = input.children[1].text;
+                if (identifierType === "array_declarator") {
+                    const identifier = input.children[2].children[0].text;
+                    const quantifier = Number(input.children[2].children[2].text);
+                    const value = defaultValue[qualifier] || structs[qualifier];
+                    uniforms[identifier] = {
+                        value: Array(quantifier).fill(value)
+                    };
+                } else {
+                    const identifier = input.children[2].text;
+                    const value = defaultValue[qualifier] || structs[qualifier];
+                    uniforms[identifier] = {
+                        value
+                    };
+                }
+            })).with({
+                type: "struct_specifier"
+            }, (() => {
+                const identifier = node.children[1].text;
+                structs[identifier] = {};
+                for (const child of node.children[2].children) {
+                    if (child.type === "field_declaration") {
+                        if (child.children[1].childCount) {
+                            let quantifier = 1;
+                            for (const subChild of child.children[1].children) {
+                                if (subChild.type === "array_declarator") {
+                                    quantifier = Number(subChild.children[2].text);
+                                    break;
+                                }
+                            }
+                            const qualifier = child.children[0].text;
+                            const nestedIdentifier = child.children[2].text;
+                            const value = defaultValue[qualifier] || structs[qualifier];
+                            structs[identifier][nestedIdentifier] = Array(quantifier).fill(value);
+                        } else {
+                            const qualifier = child.children[0].text;
+                            const nestedIdentifier = child.children[1].text;
+                            const value = defaultValue[qualifier] || structs[qualifier];
+                            structs[identifier][nestedIdentifier] = value;
+                        }
+                    }
+                }
+            })).otherwise((() => {}));
+            for (let i = node.children.length - 1; i >= 0; i--) {
+                stack.push(node.children[i]);
+            }
+        }
+        const uniformsString = JSON.stringify(uniforms, null, 2);
+        let output = `export default \`${source}\`;\n\n`;
+        output += `export const uniforms = ${uniformsString};\n\n`;
+        callback(null, output);
     } catch (err) {
         callback(err);
     }
 }
 
-export { parser as default };
+export { parser$1 as default };

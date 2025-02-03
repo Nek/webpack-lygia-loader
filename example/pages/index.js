@@ -2,8 +2,11 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 // Import shaders
-import fragmentShader from '../shaders/fragment.glsl';
-import vertexShader from '../shaders/vertex.glsl';
+import fragmentShader, { uniforms as fragmentUniforms } from '../shaders/fragment.glsl';
+import vertexShader, { uniforms as vertexUniforms } from '../shaders/vertex.glsl';
+
+console.log(fragmentUniforms);
+console.log(vertexUniforms);
 
 export default function Home() {
   const canvasRef = useRef();
