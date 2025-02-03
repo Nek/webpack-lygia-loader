@@ -89,8 +89,8 @@ export default function (this: LoaderContext<{}>, source: string) {
   const callback = this.async();
   try {
     const tree = parser.parse(source);
-    const walker = tree.walk();
 
+    // Rewrite this function to work without recursion AI!
     function traverseTree(node: Parser.SyntaxNode) {
       console.log(`Node type: ${node.type}`);
       
