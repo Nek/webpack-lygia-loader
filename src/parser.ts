@@ -90,16 +90,17 @@ export default function (this: LoaderContext<{}>, source: string) {
   try {
     const tree = parser.parse(source);
 
-    // Rewrite this function to work without recursion AI!
-    function traverseTree(node: Parser.SyntaxNode) {
+    const stack: Parser.SyntaxNode[] = [tree.rootNode];
+    
+    while (stack.length > 0) {
+      const node = stack.pop()!;
       console.log(`Node type: ${node.type}`);
       
-      for (let child of node.children) {
-        traverseTree(child);
+      // Push children in reverse order so they're popped in original order
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        stack.push(node.children[i]);
       }
     }
-
-    traverseTree(tree.rootNode);
     callback(null, `export default \`${source}\`;`);
   } catch (err: any) {
     callback(err);
