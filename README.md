@@ -1,5 +1,3 @@
-// Add tsconfig.json to example in examle folder AI!
-
 # webpack-lygia-loader
 
 A webpack loader that enables seamless integration of [Lygia](https://lygia.xyz/) shaders by resolving `#include` directives at build time. This eliminates runtime network requests for shader dependencies and improves performance. The loader handles both local file includes and remote Lygia library imports with automatic caching.
