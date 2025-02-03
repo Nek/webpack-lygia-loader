@@ -90,11 +90,16 @@ export default function (this: LoaderContext<{}>, source: string) {
   try {
     const tree = parser.parse(source);
     const walker = tree.walk();
-    console.log(walker.currentNode);
-    // Implement depth first tree traversal with logging of a node's name AI!
-    
 
-    // console.log(tree.rootNode.toString());
+    function traverseTree(node: Parser.SyntaxNode) {
+      console.log(`Node type: ${node.type}`);
+      
+      for (let child of node.children) {
+        traverseTree(child);
+      }
+    }
+
+    traverseTree(tree.rootNode);
     callback(null, `export default \`${source}\`;`);
   } catch (err: any) {
     callback(err);
