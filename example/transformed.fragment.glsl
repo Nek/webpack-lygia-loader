@@ -1,6 +1,3 @@
-precision highp float;
-
-
 struct ValueWithCurve {
   vec2 value;
   vec4 bezier;
@@ -25,20 +22,12 @@ struct Objects {
 
 uniform Objects objects;
 
-#include "lygia/math/const.glsl"
-#include "common/noise.glsl"
-
-out vec4 fragColor;
-in vec2 vUv;
-
+/*
+contributors: Patricio Gonzalez Vivo
+description: some useful math constants
+license:
+    - Copyright (c) 2021 Patricio Gonzalez Vivo under Prosperity License - https://prosperitylicense.com/versions/3.0.0
+    - Copyright (c) 2021 Patricio Gonzalez Vivo under Patron License - https://lygia.xyz/license
+*/
 uniform float uTime;
 
-void main() {
-    float n = noise(vUv * 10.0);
-    vec3 color = vec3(n);
-    
-    // Use PI from lygia/math/const.glsl
-    color *= abs(sin(PI * vUv.x));
-    
-    fragColor = vec4(color, 1.0);
-}

@@ -1,36 +1,32 @@
 {
   "name": "webpack-lygia-loader",
   "version": "0.0.1",
-  "description": "Webpack loader for Lygia shader library",
+  "author": "Nikita Anatolievich Dudnik <nikdudnik@gmail.com>",
+  "main": "dist/loader.mjs",
   "type": "module",
-  "main": "./src/loader.mjs",
-  "exports": {
-    ".": "./src/loader.mjs"
-  },
+  "types": "dist/loader.d.ts",
   "files": [
-    "src"
+    "/dist"
   ],
-  "keywords": [
-    "webpack-loader",
-    "lygia",
-    "glsl",
-    "shader"
-  ],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "node-fetch": "^3.3.2"
-  },
-  "peerDependencies": {
-    "webpack": "^5.0.0"
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "jest --silent=false",
+    "publish-patch": "npm version patch && hg ci -m \"Publish v$(jq -r '.version' package.json)\" && npm publish"
   },
   "devDependencies": {
-    "raw-loader": "^4.0.2"
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/node": "^22.13.0",
+    "babel-loader": "^9.2.1",
+    "rollup": "^4.34.1",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.3"
   },
-  "directories": {
-    "example": "example"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "dependencies": {
+    "@shaderfrog/glsl-parser": "^5.4.1",
+    "node-fetch": "^3.3.2",
+    "ts-pattern": "^5.6.2",
+    "webpack": "^5.97.1"
   }
 }
