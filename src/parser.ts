@@ -36,6 +36,19 @@ type Input = ({ type: string, text: string, children: Input[] });
 
 declare const input: Input;
 
+// This code generates a uniforms object from a glsl shader
+// It parses the shader into a tree and then traverses the tree to build the uniforms object
+// It uses pattern matching to navigate the tree and build the uniforms object
+// It also uses the tree-sitter library to parse the shader
+// It is a work in progress and does not yet support all glsl features
+// It is also not very efficient and could be improved
+// TODO:
+// - Add support for all glsl features
+// - Improve efficiency
+// - Add support for custom uniforms
+// - Add support for custom structs
+// - Generate types AI!
+
 export default function (this: LoaderContext<{}>, source: string) {
     const callback = this.async();
     try {
