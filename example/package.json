@@ -1,12 +1,14 @@
 {
   "name": "lygia-loader-example",
   "version": "0.1.0",
+  "type": "module",
   "dependencies": {
     "glsl-transpiler": "^3.0.3",
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "three": "^0.158.0"
+    "three": "^0.158.0",
+    "ts-deepmerge": "^7.0.2"
   },
   "private": true,
   "scripts": {
@@ -15,6 +17,12 @@
     "start": "next start"
   },
   "devDependencies": {
-    "raw-loader": "^4.0.2"
+    "@types/node": "^22.13.0",
+    "@types/react": "18",
+    "@types/react-dom": "18",
+    "@types/three": "^0.173.0",
+    "raw-loader": "^4.0.2",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.7.3"
   }
 }

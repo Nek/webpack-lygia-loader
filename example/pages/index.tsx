@@ -1,15 +1,17 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 // Import shaders
 import fragmentShader, { uniforms as fragmentUniforms } from '../shaders/fragment.glsl';
 import vertexShader, { uniforms as vertexUniforms } from '../shaders/vertex.glsl';
+import { merge } from 'ts-deepmerge';
 
-console.log(fragmentUniforms);
-console.log(vertexUniforms);
+const uniforms = merge(fragmentUniforms, vertexUniforms);
+
+console.log(uniforms);
 
 export default function Home() {
-  const canvasRef = useRef();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
