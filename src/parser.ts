@@ -1,16 +1,12 @@
 import { LoaderContext } from 'webpack';
-// import { parser, generate } from '@shaderfrog/glsl-parser';
-// import { type DeclarationNode, visit, type NodeVisitors, type Path, type DeclarationStatementNode, DeclaratorListNode, FullySpecifiedTypeNode, KeywordNode, IdentifierNode, QualifierDeclaratorNode, TypeSpecifierNode, DefaultCaseNode, FunctionNode, PreprocessorNode, StructDeclarationNode, StructNode, LiteralNode } from '@shaderfrog/glsl-parser/ast/index.js';
-import { writeFileSync } from 'fs';
-import path from 'path';
 import { match, P } from 'ts-pattern';
 
 import Parser from 'tree-sitter';
 import GLSL from 'tree-sitter-glsl';
+import { writeFileSync } from 'fs';
 
 const parser = new Parser();
 parser.setLanguage(GLSL as Parser.Language);
-
 
 const defaultValue: Record<string, Primitive> = {
     'float': 1,
@@ -20,6 +16,7 @@ const defaultValue: Record<string, Primitive> = {
     'int': 1,
     'bool': true,
 }
+
 type Primitive = number | [number, number] | [number, number, number] | [number, number, number, number] | boolean | Float32Array;
 interface Struct {
     [key: string]: Primitive | Struct | Array<Primitive | Struct>;
@@ -30,24 +27,22 @@ interface Uniform {
 type Uniforms = Record<string, Uniform>;
 
 const structs: Record<string, Struct> = {};
+const structTypes: Record<string, string> = {};
 const uniforms: Uniforms = {};
+const uniformTypes: Record<string, {value: string}> = {};
 
-type Input = ({ type: string, text: string, children: Input[] });
+const primitives = {
+    'float': 'number',
+    'vec2': '[number, number]',
+    'vec3': '[number, number, number]',
+    'vec4': '[number, number, number, number]',
+    'int': 'number',
+    'bool': 'boolean',
+}
 
-declare const input: Input;
-
-// This code generates a uniforms object from a glsl shader
-// It parses the shader into a tree and then traverses the tree to build the uniforms object
-// It uses pattern matching to navigate the tree and build the uniforms object
-// It also uses the tree-sitter library to parse the shader
-// It is a work in progress and does not yet support all glsl features
-// It is also not very efficient and could be improved
-// TODO:
-// - Add support for all glsl features
-// - Improve efficiency
-// - Add support for custom uniforms
-// - Add support for custom structs
-// - Generate types AI!
+function structTypeIsComplete(identifier: string) {
+    return structTypes?.[identifier]?.endsWith('};\n') ?? false;
+}
 
 export default function (this: LoaderContext<{}>, source: string) {
     const callback = this.async();
@@ -66,22 +61,26 @@ export default function (this: LoaderContext<{}>, source: string) {
                         const identifier = input.children[2].children[0].text;
                         const quantifier = Number(input.children[2].children[2].text);
                         const value = defaultValue[qualifier] || structs[qualifier];
-                        // console.log("identifier", identifier, "qualifier", qualifier, "quantifier", quantifier, "value", value);
                         uniforms[identifier] = {
                             value: Array(quantifier).fill(value)
                         }
+                        const type = primitives[qualifier] || qualifier;
+                        uniformTypes[identifier] = {value: `[${Array(quantifier).fill(type).join(', ')}]`};
                     } else {
                         const identifier = input.children[2].text;
                         const value = defaultValue[qualifier] || structs[qualifier];
-                        // console.log("identifier", identifier, "qualifier", qualifier, "value", value);
                         uniforms[identifier] = {
                             value
                         }
+                        uniformTypes[identifier] = {value: primitives[qualifier] || qualifier};
                     }
                 })
                 .with({ type: 'struct_specifier' }, () => {
                     const identifier = node.children[1].text;
                     structs[identifier] = {} as Struct;
+                    if (!structTypeIsComplete(identifier)) {
+                        structTypes[identifier] = `{\n`;
+                    }
                     for (const child of node.children[2].children) {
                         if (child.type === 'field_declaration') {
                             if (child.children[1].childCount) {
@@ -96,32 +95,42 @@ export default function (this: LoaderContext<{}>, source: string) {
                                 const nestedIdentifier = child.children[2].text;
                                 const value = defaultValue[qualifier] || structs[qualifier];
                                 structs[identifier][nestedIdentifier] = Array(quantifier).fill(value);
+                                if (!structTypeIsComplete(identifier)) {
+                                    const type = primitives[qualifier] || qualifier;
+                                    structTypes[identifier] += `${nestedIdentifier}: [${Array(quantifier).fill(type).join(', ')}];\n`;
+                                }
                             } else {
                                 const qualifier = child.children[0].text;
                                 const nestedIdentifier = child.children[1].text;
                                 const value = defaultValue[qualifier] || structs[qualifier];
                                 structs[identifier][nestedIdentifier] = value;
+                                if (!structTypeIsComplete(identifier)) {
+                                    structTypes[identifier] += `${nestedIdentifier}: ${primitives[qualifier] || qualifier};\n`;
+                                }
                             }
                         }
+                    }
+                    if (!structTypeIsComplete(identifier)) {
+                        structTypes[identifier] += "};\n";
                     }
                 })
                 .otherwise(() => {
                 });
-                
+
             // Push children in reverse order so they're popped in original order
             for (let i = node.children.length - 1; i >= 0; i--) {
                 stack.push(node.children[i]);
             }
         }
-        // console.log(structs);
-        // console.log(JSON.stringify(structs, null, 2));
 
-        const uniformsString = JSON.stringify(uniforms, null, 2);
-        // console.log(uniformsString);
+        const structTypesString = Object.entries(structTypes).map(([key, value]) => `export interface ${key} ${value}\n`).join('\n');
+        const uniformTypesString = `export interface Uniforms ${JSON.stringify(uniformTypes, null, 2)}`;
 
-        let output = `export default \`${source}\`;\n\n`;
-        output += `export const uniforms = ${uniformsString};\n\n`;
-        callback(null, output);
+        const uniformsString = `export const defaultUniforms: Uniforms = ${JSON.stringify(uniforms, null, 2)};`;
+
+        let output = `${structTypesString}${uniformTypesString}\n${uniformsString}`.replaceAll('"', '');
+        writeFileSync(this.resourcePath + '.ts', output);
+        callback(null, source);
     } catch (err: any) {
         callback(err);
     }

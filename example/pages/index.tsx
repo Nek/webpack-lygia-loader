@@ -2,13 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 // Import shaders
-import fragmentShader, { uniforms as fragmentUniforms } from '../shaders/fragment.glsl';
-import vertexShader, { uniforms as vertexUniforms } from '../shaders/vertex.glsl';
-import { merge } from 'ts-deepmerge';
+import fragmentShader from '../shaders/fragment.glsl';
+import vertexShader from '../shaders/vertex.glsl';
 
-const uniforms = merge(fragmentUniforms, vertexUniforms);
+// const uniforms = merge(fragmentUniforms, vertexUniforms);
 
-console.log(uniforms);
+console.log(vertexShader);
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -10,11 +10,10 @@ const nextConfig = {
       test: /\.(glsl|vs|fs|vert|frag)$/,
       exclude: /node_modules/,
       use: [
-        'babel-loader',
+        'raw-loader',
         path.resolve(__dirname, '../dist/parser.mjs'),
         path.resolve(__dirname, '../dist/loader.mjs'),
       ],
-      type: 'javascript/auto',
     });
     return config;
   }

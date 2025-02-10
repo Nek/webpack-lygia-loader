@@ -4,6 +4,8 @@ import Parser from "tree-sitter";
 
 import GLSL from "tree-sitter-glsl";
 
+import { writeFileSync } from "fs";
+
 const parser = new Parser;
 
 parser.setLanguage(GLSL);
@@ -19,7 +21,24 @@ const defaultValue = {
 
 const structs = {};
 
+const structTypes = {};
+
 const uniforms = {};
+
+const uniformTypes = {};
+
+const primitives = {
+    float: "number",
+    vec2: "[number, number]",
+    vec3: "[number, number, number]",
+    vec4: "[number, number, number, number]",
+    int: "number",
+    bool: "boolean"
+};
+
+function structTypeIsComplete(identifier) {
+    return structTypes?.[identifier]?.endsWith("};\n") ?? false;
+}
 
 function parser$1(source) {
     const callback = this.async();
@@ -45,11 +64,18 @@ function parser$1(source) {
                     uniforms[identifier] = {
                         value: Array(quantifier).fill(value)
                     };
+                    const type = primitives[qualifier] || qualifier;
+                    uniformTypes[identifier] = {
+                        value: `[${Array(quantifier).fill(type).join(", ")}]`
+                    };
                 } else {
                     const identifier = input.children[2].text;
                     const value = defaultValue[qualifier] || structs[qualifier];
                     uniforms[identifier] = {
                         value
+                    };
+                    uniformTypes[identifier] = {
+                        value: primitives[qualifier] || qualifier
                     };
                 }
             })).with({
@@ -57,6 +83,9 @@ function parser$1(source) {
             }, (() => {
                 const identifier = node.children[1].text;
                 structs[identifier] = {};
+                if (!structTypeIsComplete(identifier)) {
+                    structTypes[identifier] = `{\n`;
+                }
                 for (const child of node.children[2].children) {
                     if (child.type === "field_declaration") {
                         if (child.children[1].childCount) {
@@ -71,23 +100,35 @@ function parser$1(source) {
                             const nestedIdentifier = child.children[2].text;
                             const value = defaultValue[qualifier] || structs[qualifier];
                             structs[identifier][nestedIdentifier] = Array(quantifier).fill(value);
+                            if (!structTypeIsComplete(identifier)) {
+                                const type = primitives[qualifier] || qualifier;
+                                structTypes[identifier] += `${nestedIdentifier}: [${Array(quantifier).fill(type).join(", ")}];\n`;
+                            }
                         } else {
                             const qualifier = child.children[0].text;
                             const nestedIdentifier = child.children[1].text;
                             const value = defaultValue[qualifier] || structs[qualifier];
                             structs[identifier][nestedIdentifier] = value;
+                            if (!structTypeIsComplete(identifier)) {
+                                structTypes[identifier] += `${nestedIdentifier}: ${primitives[qualifier] || qualifier};\n`;
+                            }
                         }
                     }
+                }
+                if (!structTypeIsComplete(identifier)) {
+                    structTypes[identifier] += "};\n";
                 }
             })).otherwise((() => {}));
             for (let i = node.children.length - 1; i >= 0; i--) {
                 stack.push(node.children[i]);
             }
         }
-        const uniformsString = JSON.stringify(uniforms, null, 2);
-        let output = `export default \`${source}\`;\n\n`;
-        output += `export const uniforms = ${uniformsString};\n\n`;
-        callback(null, output);
+        const structTypesString = Object.entries(structTypes).map((([key, value]) => `export interface ${key} ${value}\n`)).join("\n");
+        const uniformTypesString = `export interface Uniforms ${JSON.stringify(uniformTypes, null, 2)}`;
+        const uniformsString = `export const defaultUniforms: Uniforms = ${JSON.stringify(uniforms, null, 2)};`;
+        let output = `${structTypesString}${uniformTypesString}\n${uniformsString}`.replaceAll('"', "");
+        writeFileSync(this.resourcePath + ".ts", output);
+        callback(null, source);
     } catch (err) {
         callback(err);
     }
