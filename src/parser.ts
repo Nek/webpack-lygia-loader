@@ -126,7 +126,7 @@ export default function (this: LoaderContext<{}>, source: string) {
         const structTypesString = Object.entries(structTypes).map(([key, value]) => `export interface ${key} ${value}\n`).join('\n');
         const uniformTypesString = `export interface Uniforms ${JSON.stringify(uniformTypes, null, 2)}`;
 
-        const uniformsString = `export const defaultUniforms: Uniforms = ${JSON.stringify(uniforms, null, 2)};`;
+        const uniformsString = `export const defaultUniforms: Uniforms & { [uniform: string]: { value: any }; } = ${JSON.stringify(uniforms, null, 2)};`;
 
         let output = `${structTypesString}${uniformTypesString}\n${uniformsString}`.replaceAll('"', '');
         writeFileSync(this.resourcePath + '.ts', output);

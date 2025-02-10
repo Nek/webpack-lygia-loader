@@ -41,7 +41,7 @@ export interface Uniforms {
     value: number
   }
 }
-export const defaultUniforms: Uniforms = {
+export const defaultUniforms: Uniforms & { [uniform: string]: { value: any }; } = {
   pointLights: {
     value: [
       {

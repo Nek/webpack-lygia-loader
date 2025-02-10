@@ -4,13 +4,14 @@
     "moduleResolution": "NodeNext",
     "target": "ESNext",
     "outDir": "./dist",
-    "rootDir": "./pages",
+    "rootDir": ".",
     "declaration": true,
     "declarationDir": "./types",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "allowImportingTsExtensions": true,
     "jsx": "preserve",
     "lib": [
       "dom",
@@ -18,7 +19,7 @@
       "esnext"
     ],
     "allowJs": true,
-    "noEmit": false,
+    "noEmit": true,
     "incremental": false,
     "resolveJsonModule": true,
     "isolatedModules": true
